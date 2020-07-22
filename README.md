@@ -1,2 +1,31 @@
 # grog
 The Group Blog
+
+## Motivation
+
+The inspiration for this project was the decision by the Brookline Mothers out Front group to form a Facebook group. Facebook has been politically questionable, even repellant. Leaving aside the questionable role of Facebook in how the 2016 election went; Facebook recently caved in to political pressure to not fact-check climate-change denialist claims, but to mark them as "opinion". That the Mothers out Front group&mdash; a very politically progressive bunch, and passionately in favor of combatting climate change&mdash; felt the "need" to conduct its business on Facebook was very contentious, and not well-received by some of the group. But, said they group leaders, what alternative did they have?
+
+Group discussion can, and does, take place on the mailing list. But, the mailing list is not great for chatting. Email messages from the group are mixed in with all other personal business that comes to one's email inbox. Although email clients have some limited ability to sort mail into different inboxes, it's hard to be like "I'm going to take off my work hat and put on my activist hat, and look at all the climate activist chatter now" or vice versa. Threading in email format is fairly terrible. The email that someone is responding to may or may not have been included in new email on the topic, and, although the "include replied-to message with all lines prepended with '> '" format is fairly standard, it's implemented incosistently. The user can opt to not include the replied-to message, or they may let their MUA include it all, including that message's antecedent and its antecedent and so on recursively, resulting in very very long messy thread messes of lines starting with "> > > > > ". Group members who want to casually chat on a topic or make a side comment or post some resources are often diffidant about sending an email that will add to the unread message burden of the whole list, whereas others who are not shy will fill my mailbox with every "Yup!" and "Oh, that reminds me..." that comes to mind.
+
+What else is there?... Twitter considers it to be a feature that it's very awkward to post anything longer than a few lines, and also has insufficiently fine-grained control over who sees what messages. Slack and Discord are great for immediate discussion while people are actively working. They're rather like group text messaging. But, over longer time scales, they're not great for long-term discussions and pooling of resources. While there is some threading capability, it's hard to find stuff later. Dreamwidth (based on the old LiveJournal codebase) has never really caught on. I believe this is because it's more oriented towards individual personal blogs. While group blogs are possible, the interface is kind of clunky.
+
+If even a group as morally opposed to Facebook feels that it has to use Facebook because there's no other viable option, then Facebook has become a de facto natural monopoly. This is an unfortunate situation. Because of this, Facebook wield great power, and they have not been using that power for good. 
+
+Another inspiration for this project arises from a discussion I've been having with Phi about the relative pros and cons of traditional relational databases, versus NoSQL key-value databases. According to Phi, having the back-end persistence layer be based on a traditional relational database such as MySQL has held these social media sites (such as Facebook and Dreamwidth) back in terms of performance and features. He suggests that a NoSQL database would be a better fit. How does this work out in practice? Let's try it!
+
+## Concept and Data Schema
+
+The major entities making up Grog's world are the User, the Group, and the Post. A User corresponds to a person with an account. A User can belong to any number of Groups. Groups have three kinds of Users: moderators, members, and applicants. Users in the moderators for a Group have super-user powers over the Group. In addition to whatever priviliges ordinary members have, they can do several other things. They can edit the Group's banner. They can delete a Post. They can approve membership requests from applicants, or kick members out. Users in the members for a group have the ability to read all Posts in that Group, and to create additional Posts. Users in the applicants for a Group do not have any more rights in the Group than any random user&mdash; for example, they cannot see a Group's private Posts. The applicants list is just a list of people who would like to join a Group, and are awaiting approval from a moderator (who can either add them to the members list or&mdash; by just deleting them from appliants&mdash; deny their application). 
+
+Each Post belongs to the Group to which it was posted. A Post can either be the head of a new thread, or a comment on another Post, merely depending on whether it has a parent Post. Attributes of a Post include author (a User), title, text, photos, comments (a list of child Posts), reactions, and isPublic. If a Post isPublic, and so is its parent post and parent's parent etc. up to a thread head, then people who are not members of the Group may see it. (This allows non-members to read some of what a Group has to say, so that they can decide whether they want to join.) 
+
+## UI/UX
+
+I am concentrating on the server-side programming, so this will be minimal and clunky (unless it ever outgrows being a project for the Web Server Programming class). But it needs enough of a UI to exercise the back-end functionality.
+
+The landing page, after a User logs in, greets the user by name and offers a log-out button.
+Links for each Group that the User belongs to is listed.
+There's a "Create New Group" button.
+There's a link for the listing of all groups, labeled something like "Browse Other Groups".
+
+The page for a Group displays, at the top, the Group's name and banner (an image). Each thread-top Post that the logged-in User has permission to see is listed, in reverse chronological order. If there are comments on a Post, it has a button to expand and view those. Members have widgets to add top-level Posts, comments, and reactions. Moderators also have widgets to delete Posts, and a separate page on which to edit the membership list.
