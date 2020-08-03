@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+	<title>GROG - The Group Blog</title>
+    <!-- TODO: a bit of CSS to make this look better? (in separate static) -->
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<!-- Bootstrap causes a warning in javascript console if jquery is not present: -->
+	<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+	<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href='/stylesheets/grog.css' />
+</head>
+<body>
+	<header>
+		<center>
+            <img src="/img/logo.png" alt="Grog logo" />
+		</center>
+	</header>
+	{{#if flash}}
+		<div class="alert alert-dismissable alert-{{flash.type}}" >
+			<button type="button" class="close"
+				data-dismiss="alert" aria-hidden="true">&times;</button>
+			<strong>{{flash.intro}}</strong>
+			{{{flash.message}}}
+		</div>
+	{{/if}}
+	<div class="panel-body">
+		{{{body}}}
+	</div>
+</body>
+</html>

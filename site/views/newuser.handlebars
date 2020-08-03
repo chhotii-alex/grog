@@ -1,0 +1,64 @@
+<h3>Create a New Account:</h3>
+ <div class="table-responsive">
+  <form method="post" action="/newuser">
+    <table class="table table-condensed">
+      <tbody>
+       <tr>
+         <th>Display Name:</th>
+         <td><input type="text" name="name" value="{{flash.name}}" required></td>
+         <td><small><i>This name will be visible to other users.</i></small></td>
+       </tr>
+       <tr>
+         <th>Account Name: </th>
+         <td><input type="text" name="user" id="user" value="{{flash.user}}" required ></td>
+         <td><small><i>Must contain only letters, numbers, and/or underscores; no spaces</i></small></td>
+       </tr>
+       <tr>
+         <th>Password: </th>
+         <td><input type="password" name="pwd1" required ></td>
+         <td><small><i>At least 8 characters long. Do not re-use passwords for different sites!</i></small></td>
+       </tr>
+       <tr>
+         <th>Re-type Password: </th>
+         <td><input type="password" name="pwd2" required ></td>
+         <td><small><i>Confirm password by entering again.</i></small></td>
+       </tr>
+       
+       </tbody>
+      <tfooter>
+        <tr>
+          <td></td>
+          <td>
+           <input type="submit" value="Create Account" 
+              class="btn btn-success">
+          </td>
+        </tr>
+      </tfooter>
+    </table>
+  </form>
+  <a href="/login">Already have an account? Click here to log in.</a>
+</div>
+<script type="text/javascript" >
+function wordCharsOnly(e) {
+  var chrTyped, chrCode=0, evt=e?e:event;
+  if (evt.charCode!=null)     chrCode = evt.charCode;
+  else if (evt.which!=null)   chrCode = evt.which;
+  else if (evt.keyCode!=null) chrCode = evt.keyCode;
+
+  if (chrCode==0) chrTyped = 'SPECIAL KEY';
+  else chrTyped = String.fromCharCode(chrCode);
+
+  // "Word characters" ([A-Za-z0-9_]), special keys & backspace [\b] work as usual:
+  if (chrTyped.match(/\w|[\b]|SPECIAL/)) return true;
+  if (evt.altKey || evt.ctrlKey || chrCode<28) return true;
+
+  //Any other input? Prevent the default response:
+  if (evt.preventDefault) evt.preventDefault();
+  evt.returnValue=false;
+  return false;
+}
+
+let field = document.getElementById('user')
+field.addEventListener('keypress', wordCharsOnly)
+
+</script>

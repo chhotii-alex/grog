@@ -1,0 +1,10 @@
+
+<h3>Admin Page for {{name}}</h3>
+<form enctype="multipart/form-data" method="POST" action="/group/banner">
+    <input type="hidden" name="gnick" value="{{nickname}}" >
+    <label for="banner">New Banner Image:</label>
+    <input type="file" required accept="image/*" id="banner" name="banner" >
+    <button type="submit">Upload</button>
+</form>
+
+{{group}}

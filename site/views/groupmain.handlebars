@@ -1,0 +1,23 @@
+<h3> Welcome, {{ user.realName }}!</h3>
+{{#if group.banner}}
+    <center>
+        <img src="/blogdata/img/{{group.banner}}" />
+    </center>
+{{/if}}
+<h3> {{ group.name }} {{ group.nickname }} </h3>
+
+Posts:<br/>
+{{#each group.threads}}
+    <b> {{ title }} </b><a href="/post/edit?pid={{pid}}">Edit...</a><p/>
+    {{ text }}<p/>
+    {{ bodytext }}
+    <a href="/thread/{{pid}}">Comments...</a>
+    <hr/>
+{{/each}}
+
+<a href="/newpost?gnick={{group.nickname}}">Start New Thread</a>
+{{#if admin}}
+<a href="/group/admin/{{group.nickname}}">Manage Group</a>
+{{/if}}
+
+<a href="/landing" >Return to Main Page</a>

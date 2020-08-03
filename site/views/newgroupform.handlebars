@@ -1,0 +1,30 @@
+<h1> New Group Creation</h1>
+
+ <div class="table-responsive">
+  <form method="post" action="/newgroup">
+    <table class="table table-condensed">
+      <tbody>
+       
+       <tr>
+         <th>Group Name: </th>
+         <td><input type="text" name="gname" required ></td>
+       </tr>
+       <tr>
+         <th>Group Identifier: </th>
+         <td><input type="text" name="gnick" required ></td>
+       </tr>
+       
+       </tbody>
+      <tfooter>
+        <tr>
+          <td></td>
+          <td>
+           <input type="submit" value="Create Group" 
+              class="btn btn-success">
+          </td>
+        </tr>
+      </tfooter>
+    </table>
+  </form>
+  <a href="/landing">Return to main page</a>
+</div>

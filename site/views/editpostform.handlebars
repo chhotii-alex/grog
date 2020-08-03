@@ -1,0 +1,11 @@
+<h1> Edit Post</h1>
+
+  <form method="post" action="/post/edit">
+    <input type="hidden" name="pid" value="{{pid}}" >
+    <input type="hidden" name="gnick" value="{{gnick}}" >
+    Title:<input type="text" name="title" value="{{title}}"><br/>
+    <textarea name="bodytext" rows="10" cols="50">{{text}}</textarea>
+    <input type="submit" value="Update"  class="btn btn-success">
+  </form>
+  <a href="/landing">Return to main page</a>
+</div>

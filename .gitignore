@@ -1,4 +1,10 @@
+# Do NOT check in the file that contains login information.
+credentials.js
+
 .DS_Store
+
+# emacs backup files
+*~
 
 # database data stored locally
 site/blogdata

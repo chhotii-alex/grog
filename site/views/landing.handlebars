@@ -1,0 +1,14 @@
+<h3> Welcome, {{ user.realName }}!</h3>
+
+{{#each groups}}
+    <a href="/group/{{gnick}}">
+        <b> {{ gname }} </b>
+    </a>
+    <p/>
+    <hr/>
+{{/each}}
+
+
+<a href="/newgroup" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">
+    Create New Group
+</a>
