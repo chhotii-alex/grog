@@ -17,11 +17,6 @@ Comments are implemented as Post documents embedded in another Post's comments c
 
 /***********   UI functions related to blog entries  *****************/
 module.exports = app => {
-    app.get('/blogdata/:name', (req, res) => {
-        const name = req.params.name
-        media.sendImgFile(name, res)
-    })    
-
     app.get('/newpost', async (req, res) => {
         let { gnick, id } = req.query;
         if (!gnick) {
@@ -33,20 +28,43 @@ module.exports = app => {
             photos = post.photos
         }
         else {
+            post = null
             id = await database.addNascentPost(gnick)
             photos = []
         }
-        res.render('newpostform', { layout:'group', gnick:gnick, id:id, photos:photos })
+        formdata = { layout:'group', 
+            gnick:gnick, id:id, photos:photos,
+        }
+        if (post) {
+            formdata.title = post.title
+            formdata.bodytext = post.bodytext
+        }
+        res.render('newpostform', formdata)
     })
 
     app.post('/newpost/photo', async (req, res) => {
+        console.log("Doing /newpost/photo")
         const form = new multiparty.Form()
         form.parse(req, async (err, fields, files) => {
             if (err) {
+                console.log("error parsing form")
+                console.log(err)
                 return res.status(500).send({ error: err.message })
             }
             const gnick = fields.gnick[0]   
             const id = fields.id[0]   // This is the id of the Post
+            const title = fields.title[0]
+            const bodytext = fields.bodytext[0]
+            // Save any progress the user has made on editing the title & body text so far
+            // into the database. When we re-direct these will be filled back into the form.
+            // TODO: Not dealing with "public" checkbox correctly
+            try {
+                await database.updatePost(gnick, id, title, bodytext)
+            }
+            catch (err) {
+                return app.errorHandler(err, req, res)
+            }
+
             const filePath = files.item[0].path
             // pick off the file extension
             const ext = path.extname(filePath).substring(1)
@@ -63,24 +81,29 @@ module.exports = app => {
             }
         })    
     })
-
     app.post('/newpost', async (req, res) => {
-        let { gnick, id, title, bodytext } = req.body
-        let user = await database.getUser(req.session.userName)
-        console.log(user)
-        // The "public" flag is governed by a checkbox. So, if the checkbox isn't checked,
-        // the value for public might be undefined rather than false-- which I don't think 
-        // the database would like.
-        public = ("public" in req.body) ? true : false
-        try {
-            console.log(user.realName)
-            await database.publishPost(gnick, id, title, bodytext, public, user.realName)
-            // await database.addCommentsToPost(gnick, id)
-        }
-        catch (err) {
-            return app.errorHandler(err, req, res)
-        }
-        return res.redirect(303, `/group/${gnick}`)
+        const form = new multiparty.Form()
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                console.log("error parsing form")
+                console.log(err)
+                return res.status(500).send({ error: err.message })
+            }
+            let user = await database.getUser(req.session.userName)
+            const gnick = fields.gnick[0]   
+            const id = fields.id[0]   // This is the id of the Post
+            const title = fields.title[0]
+            const bodytext = fields.bodytext[0]
+            // Dealing with a checkbox is weird
+            let public = ("public" in fields) ? true : false
+            try {
+                await database.publishPost(gnick, id, title, bodytext, public, user.realName)
+            }
+            catch (err) {
+                return app.errorHandler(err, req, res)
+            }
+            return res.redirect(303, `/group/${gnick}`)
+        })    
     })
 
     app.get('/thread/:gnick/:pid', async (req, res) => {
@@ -88,24 +111,12 @@ module.exports = app => {
         let group = await database.getGroup(gnick)
         let post = await database.getPostByGroupAndId(gnick, pid)
         post.layout = 'group'
-        post.group = {banner: group.banner}
+        post.group = {banner: group.banner,
+                    gnick: group.nickname,
+                    gname: group.name}
         console.log("Showing detail for: ")
         console.log(post)
         return res.render('postdetail', post)
     })
 
-    app.get('/post/edit', (req, res) => {
-        const { pid, gnick } = req.query
-        post = database.getPostByPid(pid)
-        post.gnick = gnick
-        return res.render('editpostform', post)
-    })
-
-    app.post('/post/edit', (req, res) => {
-        const { pid, title, bodytext, gnick } = req.body
-        post = database.getPostByPid(pid)
-        post.title = title
-        post.text = bodytext
-        return res.redirect(303, `/group/${gnick}`)
-    })
 }

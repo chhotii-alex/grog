@@ -45,7 +45,6 @@ require('./lib/api')(app)
 /*************** UI functions ******************/
 
 require('./lib/groups')(app)
-require('./lib/groupadmin')(app)
 require('./lib/posts')(app)
 
 // Error handlers must go LAST, this is where things fall through to

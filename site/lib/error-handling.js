@@ -7,6 +7,7 @@ module.exports = app => {
             },
             'application/xml': () => {
                 // TODO
+                res.end()
             },
             'text/plain': () => {
                 res.send('404 - Not Found')

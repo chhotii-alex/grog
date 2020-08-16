@@ -1,5 +1,20 @@
 <center><h2> {{ group.name }} </h2></center>
 
+<span >
+        {{#if member}}
+            <a href="/newpost?gnick={{group.nickname}}">Start New Thread</a>
+        {{else}}
+            {{#if applied}}
+                Until your membership of this group is approved, you may not post to it.
+            {{else}}
+                <form action="/group/apply" method="post">
+                    <input type="hidden" name="gnick" value="{{group.nickname}}">
+                    <input type="submit" value="Apply for Membership in This Group" >
+                </form>
+            {{/if}}
+        {{/if}}
+</span>
+
 <h3>Posts:</h3>
 {{#each group.threads}}
     <b> {{ title }} </b> by {{user}} on {{ created_at }}
@@ -15,21 +30,10 @@
     <hr/>
 {{/each}}
 
-<div class="fixed" >
-    <span style="padding:10%" >
-        {{#if member}}
-            <a href="/newpost?gnick={{group.nickname}}">Start New Thread</a>
-        {{else}}
-            {{#if applied}}
-                Until your membership of this group is approved, you may not post to it.
-            {{else}}
-                <form action="/group/apply" method="post">
-                    <input type="hidden" name="gnick" value="{{group.nickname}}">
-                    <input type="submit" value="Apply for Membership in This Group" >
-                </form>
-            {{/if}}
-        {{/if}}
-    </span>
+<div style="height:50px"></div>
+
+<div class="fixed" style="background-color:cornsilk">
+    
     <span style="padding:10%" >
         {{#if admin}}
             <a href="/group/admin/{{group.nickname}}">Manage Group</a>

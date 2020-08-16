@@ -13,8 +13,6 @@ module.exports = app => {
         try {
             let user = await database.getUser(req.session.userName)
             let groups = await database.getGroupsForUser(req.session.userName )
-            console.log("Returned from getGroupsForUser:")
-            console.log(groups)
             let data = { user: user, groups:groups }
             res.render('landing', data )
         }
@@ -85,7 +83,7 @@ module.exports = app => {
                 group:group,
                 user:user, 
                 member:member,
-                admin:admin, // TODO: only give moderators admin privs
+                admin:admin, // only give moderators admin privs
                 applied:applied,
                 layout:'group'
             }

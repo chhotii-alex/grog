@@ -131,6 +131,9 @@ exports.createUser = async (user, pwd, name, apiKey) => {
     newUser.save()
 }
 
+/*  This is used when creating a new group, to make sure that we don't get two groups with
+    the same nickname.
+*/
 module.exports.existsGroupWithNickname = async (gnick) => {
     let record = await Group.findOne({nickname:gnick})
     if (record) {
@@ -315,6 +318,8 @@ module.exports.getGroupDataForUser = async (gnick, userID) => {
     else if (group.applicants.includes(userID)) {
         membershipLevel = 1
     }
+    // Sort the top-level posts in reverse chronological order of creation:
+    group.threads.sort((a, b) => b.created_at - a.created_at )
     threads = filteredPosts(group.threads, membershipLevel > 1)
     result = {
         name:group.name,
@@ -418,10 +423,30 @@ exports.getPostByGroupAndId = async (gnick, id) => {
     }
 }
 
+exports.updatePost = async (gnick, id, title, bodytext) => {
+    let group = await Group.findOne({nickname:gnick})
+    if (!group) {
+        console.log(`Group ${gnick} not found`)
+    }
+    let post = group.threads.find(element => element._id == id)
+    if (!post) {
+        console.log('post ${id} not found')
+    }
+    post.title = title
+    post.bodytext = bodytext
+    await group.save();
+}
+
 exports.publishPost = async (gnick, id, title, bodytext, isPublic, user) => {
     console.log("We will attribute this to: " + user)
     let group = await Group.findOne({nickname:gnick})
+    if (!group) {
+        console.log(`Group ${gnick} not found`)
+    }
     let post = group.threads.find(element => element._id == id)
+    if (!post) {
+        console.log('post ${id} not found')
+    }
     post.title = title
     post.bodytext = bodytext
     post.isPublic = isPublic

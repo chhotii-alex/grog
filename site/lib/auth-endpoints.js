@@ -14,7 +14,6 @@ const database = require('../database')
 // I find the paramters in req.body or req.params or req.query?
 module.exports = app => {
     app.get('/', (req, res) => {
-        console.log("Currently logged in user: " + req.session.userName)
         if (req.session.userName) {
             res.redirect(303, '/landing')
         }

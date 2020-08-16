@@ -4,8 +4,14 @@ const media = require('../media')
 
 /***********   API functions   *****************/
 module.exports = app => {
+
+    /* TODO: This shouldn't just give any image out to anyone. Images might be 
+        privacy concerns. Ideally we should have some permissions infrastructure around
+        images. Images belong to Posts or Groups. If an image belongs to a Post that is not
+        publically available, we should check that the user belongs to that Post's Group
+        before serving out the image. This would require a database collection of image records...
+    */ 
     app.get('/api/blogdata/:name', (req, res) => {
-        console.log("Doing endpoint /api/blogdata/?")
         const name = req.params.name
         return media.sendImage(name, req, res)
     })
