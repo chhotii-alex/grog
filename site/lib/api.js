@@ -29,13 +29,58 @@ module.exports = app => {
             'application/xml': () => {
                 transformedThreads = info.threads.map( post => {
                     return { 'thread' : [
-                        {_attr: {title: post.title, when: post.created_at, author:post.user}},
+                        {_attr: {
+                            title: post.title, when: post.created_at, author:post.user,
+                            pid: post._id
+                        }},
                         post.bodytext
                     ]} })
                 let transform = {'group' : [
                         {_attr: {name: info.name, nickname:info.nickname}},
                         {threads: transformedThreads}
                 ]}
+                let xmlData = xml(transform, {indent:'  ', declaration:true}) + '\n'
+                res.send(xmlData)
+            },
+        })  // END .format
+    })
+
+    function dataForXML(post) {
+        let results = []
+        results.push( {
+            _attr: {
+                title: post.title,
+                when: post.created_at,
+                author: post.user,
+                pid: post._id
+            }
+        })
+        results.push(post.bodytext) 
+        if (post.comments) {
+            let i
+            for (i = 0; i < post.comments.length; ++i) {
+                results.push( {
+                    comment: dataForXML(post.comments[i])
+                } )
+            }
+        }
+        return results
+    }
+
+    app.get('/api/post/:postid', async (req, res) => {
+        let { postid } = req.params 
+        let post = await database.getPostByGroupAndId(null, postid)
+        console.log("From db:")
+        console.log(post)
+        if (!post) {
+            return res.status(404).end()
+        }
+        res.format({
+            'application/json': () => {
+                res.json(post)
+            },
+            'application/xml': () => {
+                let transform = {'post' : dataForXML(post) }
                 let xmlData = xml(transform, {indent:'  ', declaration:true}) + '\n'
                 res.send(xmlData)
             },

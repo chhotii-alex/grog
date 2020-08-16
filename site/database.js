@@ -48,7 +48,12 @@ postSchema.add({
     title: String,
     bodytext: String,
     user: String,
-    comments: [postSchema],
+    comments: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Post"
+        }
+    ],
     photos: [String],
     isPublic: Boolean,
     isPublished: Boolean
@@ -60,7 +65,12 @@ let groupSchema = new Schema({
     name: String,
     nickname: String,
     banner: String,
-    threads: [postSchema],
+    threads: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Post"
+        }
+    ],
     moderators: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -85,6 +95,7 @@ const Group = mongoose.model("Group", groupSchema);
 module.exports.cleanOutDatabase = async() => {
     await User.deleteMany({});
     await Group.deleteMany({});
+    await Post.deleteMany({});
 }
 
 module.exports.getUser = async (user) => {
@@ -117,7 +128,6 @@ module.exports.existsUserForUsername = async (user) => {
 
 module.exports.validateLogin = async (user, pwd) => {
     let record = await User.findOne({userName:user, password:pwd})
-    console.log(record)
     if (record) {
         return true
     }
@@ -248,21 +258,24 @@ module.exports.getAllGroups = async () => {
     return results
 }
 
-function filteredPosts(posts, showAll) {
-    console.log("Passed in to filteredPosts")
-    console.log(posts)
+async function filteredPosts(posts, showAll, gnick) {
     let results;
     if (showAll) {
         results = posts
     }
     else {
-        console.log("Only showing public stuff because showAll is false")
         results = posts.filter( post => post.isPublic) 
     }
-    console.log("Results:")
-    console.log(results)
     results = results.filter( post => post.isPublished)
-    results = results.map( post => {
+    let filteredComments = {}
+    for (i = 0; i < results.length; ++i) {
+        if (results[i].comments.length) {
+            await results[i].populate("comments")
+            await results[i].execPopulate()
+            filteredComments[results[i]._id] = await filteredPosts(results[i].comments, showAll, gnick)
+        }
+    }
+    results =  results.map(  post =>  {
         return {
             _id: post._id,
             title: post.title,
@@ -271,43 +284,21 @@ function filteredPosts(posts, showAll) {
             isPublic: post.isPublic,
             user: post.user,
             created_at: post.created_at,
-            comments: [
-                {
-                    title: "Here is my comment.",
-                    bodytext: "I have so much to say.",
-                    isPublic: true,
-                    user: "Santa Claus",
-                    comments: [
-                        {
-                            title: "but",
-                            bodytext: "I totally disagree.",
-                            isPublic: true,
-                            user: "Grinch",
-                            comments:[]
-                        }
-                    ]
-                },
-                {
-                    title:"thoughts",
-                    bodytext:"I have a thought.",
-                    isPublic:true,
-                    user:"Turtle",
-                    comments:[]
-                }
-            ]
-            // TODO: really actually do this comments: filteredPosts(post.comments, showAll)
+            comments: filteredComments[post._id],
+            gnick: gnick
         }
     })
-    console.log("Filtered posts:")
-    console.log(results)
     return results
 }
 
 module.exports.getGroupDataForUser = async (gnick, userID) => {
-    let group = await Group.findOne({nickname:gnick})
+    let group = await (await Group.findOne({nickname:gnick})).populate("threads")
     if (!group) {
         return null
     }
+    await group.execPopulate()
+    console.log("threads after execPopulate():")
+    console.log(group.threads)
     let membershipLevel = 0
     if (group.moderators.includes(userID)) {
         membershipLevel = 3
@@ -320,7 +311,7 @@ module.exports.getGroupDataForUser = async (gnick, userID) => {
     }
     // Sort the top-level posts in reverse chronological order of creation:
     group.threads.sort((a, b) => b.created_at - a.created_at )
-    threads = filteredPosts(group.threads, membershipLevel > 1)
+    threads = await filteredPosts(group.threads, membershipLevel > 1, group.nickname)
     result = {
         name:group.name,
         nickname:group.nickname,
@@ -385,100 +376,74 @@ module.exports.setGroupBanner = async (gnick, basename, ext) => {
 exports.addNascentPost = async (gnick) => {
     let group = await Group.findOne({nickname:gnick})
     let newPost = new Post({isPublished:false})
-    group.threads.push(newPost)
+    await newPost.save()
+    group.threads.push(newPost._id)
     group.save()
     return newPost._id
 }
 
 exports.addPhotoToPost = async (gnick, id, filename) => {
     console.log("Doing addPhotoToPost")
-    let group = await Group.findOne({nickname:gnick})
-    let post = group.threads.find(element => element._id == id)
-    console.log("Found this Post?")
-    console.log(post)
+    let post = await Post.findById(id)
     post.photos.push(filename)
-    group.save()
-} 
+    post.save()
+}
 
 exports.getPostByGroupAndId = async (gnick, id) => {
     let showAll = true // TODO: set this according to status of user
-    let group = await Group.findOne({nickname:gnick})
-    let post = group.threads.find(element => element._id == id)
-    console.log("From database:")
-    console.log(post)
-    phonyComments = [{
-        title: "Here is my comment.",
-        bodytext: "I have so much to say.",
-        isPublic: true,
-        isPublished:true,
-        user: "Santa Claus",
-    }]
+    let post = await Post.findById(id).populate("comments")
+    await post.execPopulate()
+    let commentsToShow = await filteredPosts(post.comments, true, gnick)
     return {
         _id: post._id,
         title: post.title,
         bodytext: post.bodytext,
         photos: post.photos,
         isPublic: post.isPublic,
-        comments: filteredPosts(phonyComments, showAll)
+        comments: commentsToShow,
+        user: post.user,
+        created_at: post.created_at
     }
 }
 
 exports.updatePost = async (gnick, id, title, bodytext) => {
-    let group = await Group.findOne({nickname:gnick})
-    if (!group) {
-        console.log(`Group ${gnick} not found`)
-    }
-    let post = group.threads.find(element => element._id == id)
+    let post = await Post.findById(id)
     if (!post) {
-        console.log('post ${id} not found')
+        throw 'post ${id} not found'
     }
     post.title = title
     post.bodytext = bodytext
-    await group.save();
+    await post.save();
+}
+
+exports.removePost = async (pid) => {
+    await Post.findByIdAndDelete(pid)
 }
 
 exports.publishPost = async (gnick, id, title, bodytext, isPublic, user) => {
-    console.log("We will attribute this to: " + user)
-    let group = await Group.findOne({nickname:gnick})
-    if (!group) {
-        console.log(`Group ${gnick} not found`)
-    }
-    let post = group.threads.find(element => element._id == id)
+    let post = await Post.findById(id)
     if (!post) {
-        console.log('post ${id} not found')
+        throw 'post ${id} not found'
     }
     post.title = title
     post.bodytext = bodytext
     post.isPublic = isPublic
     post.isPublished = true
     post.user = user
-    console.log(user)
-    await group.save();
+    await post.save();
 }
 
-exports.addCommentsToPost = async (gnick, id) => {
-    let group = await Group.findOne({nickname:gnick})
-    let post = group.threads.find(element => element._id == id)
+exports.addNascentComment = async (parentPostId) => {
+    let post = await Post.findById(parentPostId)
+    if (!post) {
+        throw 'post ${id} not found'
+    }
     let comment = new Post({
-        title: "this is a comment",
-        bodytext: "here is the body of the comment",
-        isPublic: true,
-        isPublished: true,
-        comments:[ ]
+        isPublished: false,
     })
-    post.comments.push(comment)
-    await group.save()
-    console.log("ID for comment:" + comment._id)
-
-    let metaComment = new Post({
-        title: "meta-comment",
-        bodytext: "And I have a comment on your commnt.",
-        isPublic: true,
-        isPublished: true,
-        comments: []
-    })
-    comment.comments.push(metaComment)
-    await group.save()
-    console.log("ID for comment on comment:" + metaComment._id)
+    await comment.save()
+    post.comments.push(comment._id)
+    await post.save()
+    return comment._id
 }
 

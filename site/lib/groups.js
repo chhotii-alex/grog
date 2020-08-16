@@ -118,7 +118,6 @@ module.exports = app => {
         }
     })
     app.post('/group/acceptapplicant', async (req, res) => {
-        console.log("Doing /group/acceptapplicant")
         const userName = req.body.userName
         const gnick = req.body.gnick
         console.log(userName)

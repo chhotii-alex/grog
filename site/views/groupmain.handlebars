@@ -18,6 +18,13 @@
 <h3>Posts:</h3>
 {{#each group.threads}}
     <b> {{ title }} </b> by {{user}} on {{ created_at }}
+    {{#if ../admin}}
+        {{! A moderator of a group can delete a post. }}
+        {{! If we were building out the front-end, we would have this put up an "Are you sure?" dialog. }}
+        <form action="/post/delete/{{../group.nickname}}/{{_id}}" method="post" >
+            <input type="submit" value="Delete Post" >
+        </form>
+    {{/if}}
     <!-- <a href="/post/edit?pid={{_id}}">Edit...</a> Don't have editing a post working, sooo.... -->
     <p/>
     {{ text }}<p/>

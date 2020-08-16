@@ -18,10 +18,10 @@ Comments are implemented as Post documents embedded in another Post's comments c
 /***********   UI functions related to blog entries  *****************/
 module.exports = app => {
     app.get('/newpost', async (req, res) => {
-        let { gnick, id } = req.query;
+        let { gnick, id, parent } = req.query;
         if (!gnick) {
             res.status(400)
-            return res.render('error', { msg: "group not specified"})
+            return res.render('error', { msg: "where to put this post not specified"})
         }
         if (id) {
             post = await database.getPostByGroupAndId(gnick, id)
@@ -29,11 +29,17 @@ module.exports = app => {
         }
         else {
             post = null
-            id = await database.addNascentPost(gnick)
+            if (parent) {
+                console.log("Doing addNascentCommnet...")
+                id = await database.addNascentComment(parent)
+            }
+            else {
+                id = await database.addNascentPost(gnick)
+            }
             photos = []
         }
         formdata = { layout:'group', 
-            gnick:gnick, id:id, photos:photos,
+            gnick:gnick, parent:parent, id:id, photos:photos,
         }
         if (post) {
             formdata.title = post.title
@@ -117,6 +123,17 @@ module.exports = app => {
         console.log("Showing detail for: ")
         console.log(post)
         return res.render('postdetail', post)
+    })
+
+    app.post('/post/delete/:gnick/:pid', async (req, res) => {
+        let { gnick, pid } = req.params 
+        await database.removePost(pid)
+        req.session.flash = {
+            type:'info',
+            intro:'Post Deleted',
+            message:`You have successfully deleted a post.`,
+        }
+        return res.redirect(303, `/group/${gnick}`)
     })
 
 }
