@@ -1,23 +1,40 @@
-<h3> Welcome, {{ user.realName }}!</h3>
-{{#if group.banner}}
-    <center>
-        <img src="/blogdata/img/{{group.banner}}" />
-    </center>
-{{/if}}
-<h3> {{ group.name }} {{ group.nickname }} </h3>
+<center><h2> {{ group.name }} </h2></center>
 
-Posts:<br/>
+<h3>Posts:</h3>
 {{#each group.threads}}
-    <b> {{ title }} </b><a href="/post/edit?pid={{pid}}">Edit...</a><p/>
+    <b> {{ title }} </b> by {{user}} on {{ created_at }}
+    <!-- <a href="/post/edit?pid={{_id}}">Edit...</a> Don't have editing a post working, sooo.... -->
+    <p/>
     {{ text }}<p/>
     {{ bodytext }}
-    <a href="/thread/{{pid}}">Comments...</a>
+    {{#each photos}}
+      <img src="/blogdata/img/{{this}}" />
+    {{/each}}
+    <br/>
+    <a href="/thread/{{../group.nickname}}/{{_id}}">Comments...</a>
     <hr/>
 {{/each}}
 
-<a href="/newpost?gnick={{group.nickname}}">Start New Thread</a>
-{{#if admin}}
-<a href="/group/admin/{{group.nickname}}">Manage Group</a>
-{{/if}}
-
-<a href="/landing" >Return to Main Page</a>
+<div class="fixed" >
+    <span style="padding:10%" >
+        {{#if member}}
+            <a href="/newpost?gnick={{group.nickname}}">Start New Thread</a>
+        {{else}}
+            {{#if applied}}
+                Until your membership of this group is approved, you may not post to it.
+            {{else}}
+                <form action="/group/apply" method="post">
+                    <input type="hidden" name="gnick" value="{{group.nickname}}">
+                    <input type="submit" value="Apply for Membership in This Group" >
+                </form>
+            {{/if}}
+        {{/if}}
+    </span>
+    <span style="padding:10%" >
+        {{#if admin}}
+            <a href="/group/admin/{{group.nickname}}">Manage Group</a>
+        {{/if}}
+        &nbsp;
+    </span>
+    <a href="/landing" >Return to Main Page</a>
+</div>

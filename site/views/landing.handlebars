@@ -1,4 +1,11 @@
-<h3> Welcome, {{ user.realName }}!</h3>
+<form action="/logout" method="post">
+    <b> Welcome, {{ user.realName }}!</b>
+    <small><i>API Key: {{user.apiKey}}</i></small>
+    <span class="toright">
+        <input type="submit" value="Logout" >
+    </span>
+</form>
+<p/>
 
 {{#each groups}}
     <a href="/group/{{gnick}}">
@@ -8,7 +15,9 @@
     <hr/>
 {{/each}}
 
-
-<a href="/newgroup" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">
-    Create New Group
-</a>
+<div class="fixed" >
+    <a href="/allgroups" >Browse All Groups...</a><p/><p/>
+    <a href="/newgroup" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">
+        Create New Group
+    </a>
+</div>

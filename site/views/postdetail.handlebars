@@ -1,0 +1,16 @@
+
+
+<b>{{title}}</b>
+<i>by {{user}} at {{created_at}}</i><br/>
+{{bodytext}}
+<p/>
+{{#if comments}}
+    <h6>Comments:</h6>
+    <div style="border-left:groove;margin-left:20px">
+        {{#each comments}}
+            {{> postdetail}}
+        {{/each}}
+    </div>
+{{/if}}
+
+

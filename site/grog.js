@@ -4,6 +4,16 @@ var bodyParser = require('body-parser');
 const expressHandlebars = require('express-handlebars')
 const app = express()
 
+// Set up the morgan logging module to do Apache-like logging to a file.
+var fs = require('fs')
+var morgan = require('morgan')
+var path = require('path')
+//   create a write stream (in append mode)
+var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
+//   setup the logger
+app.use(morgan('combined', { stream: accessLogStream }))
+
+// Set up the static middleware to serve files
 app.use(express.static(__dirname + '/public'));
 
 app.engine('handlebars', expressHandlebars({defaultLayout:'main'}))
@@ -19,7 +29,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const espressSessions = require('express-session');
 app.use(espressSessions({
 	secret: "This is such a good password",
-	cookie: { maxAge: 60000 },
+	/* Cookie will last for 12 hours. N.B. that express-sessions uses MILLISEONDS for the unit here,
+		even though Max-Age in the Set-Cookie header uses SECONDS. */
+	cookie: { maxAge: 1000*60*60*12 },   
 }))
 
 const port = process.env.PORT || 3000

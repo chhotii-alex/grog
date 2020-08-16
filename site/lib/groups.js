@@ -4,7 +4,8 @@ const database = require('../database')
 const media = require('../media')
 const multiparty = require('multiparty')
 const fs = require('fs');
-const path = require('path')
+const path = require('path');
+const { RSA_NO_PADDING } = require('constants');
 
 
 module.exports = app => {
@@ -33,47 +34,117 @@ module.exports = app => {
             let nickTaken = await database.existsGroupWithNickname(gnick)
             if (nickTaken) {
                 console.log("Nickname already taken")
+                req.session.flash = {
+                    type:'danger',
+                    intro:'Group Creation Error',
+                    message:`There already exists a group with the nickname "${gnick}"`,
+                    gname:gname,
+                }
                 return res.redirect(303, '/newgroup')
             }
-            // TODO create new group in database
-            await database.createGroup(gname, gnick)
+            // create new group in database
+            g = await database.createGroup(gname, gnick)
+            // Add this group for the current user
+            await database.addGroupToUser(gnick, req.session.userName)
+            // ...and add the user to the group. Since this user created the 
+            // group, she's a moderator.
+            await database.addUserToGroup(gnick, req.session.userName, 'moderators')
             // Now go to the page for that group
             res.redirect(303, `/group/${gnick}`)
         }
         catch (error) {
+            console.log(error)
             return app.errorHandler(error, req, res)
         }
+    })
+
+    app.get('/allgroups', async (req, res) => {
+        let allgroups = await database.getAllGroups()
+        let user = await database.getUser(req.session.userName)
+        res.render('grouplist', {user:user, groups:allgroups})
     })
     
     app.get('/group/:gnick', async (req, res) => {
         let { gnick } = req.params
         try {
             let user = await database.getUser(req.session.userName)
-            console.log(user)
-            let group = await database.getGroup(gnick)
+            let group = await database.getGroupDataForUser(gnick, user._id)
+            if (!group) {
+                return res.status(404).render('404')
+            }
+            let member = await database.isUserMemberOfGroup(user._id, group._id)
+            let admin = false
+            if (member) {
+                admin = await database.isUserModeratorOfGroup(user._id, group._id)
+            }
+            let applied = false
+            if (!member) {
+                applied = await database.isUserApplicantOfGroup(user._id, group._id)
+            }
             let info = { 
                 group:group,
                 user:user, 
-                admin:true, // TODO: only give moderators admin privs
+                member:member,
+                admin:admin, // TODO: only give moderators admin privs
+                applied:applied,
+                layout:'group'
             }
-            console.log("Datat to populate page:")
-            console.log(info)
             res.render('groupmain', info)
         }
         catch (error) {
+            console.log("caught")
+            console.log(error)
             return app.errorHandler(error, req, res)
         }
+    })
+
+    app.post('/group/apply', async (req, res) => {
+        let gnick = req.body.gnick;
+        // Add this group for the current user
+        await database.addGroupToUser(gnick, req.session.userName)
+        // ...and add the user to the group; not as a member yet, just as an applicant.
+        await database.addUserToGroup(gnick, req.session.userName, 'applicants')
+        // Now re-display to the page for that group
+        res.redirect(303, `/group/${gnick}`)
     })
 
     app.get('/group/admin/:gnick', async (req, res) => {
         const gnick = req.params.gnick
         try {
-            let group = await database.getGroup(gnick)
-            res.render('groupadmin', group)
+            let group = await database.getGroup(gnick, true)
+            data = {group: group, layout: 'group'}
+            res.render('groupadmin', data)
         }
         catch (error) {
             return app.errorHandler(error, req, res)
         }
+    })
+    app.post('/group/acceptapplicant', async (req, res) => {
+        console.log("Doing /group/acceptapplicant")
+        const userName = req.body.userName
+        const gnick = req.body.gnick
+        console.log(userName)
+        console.log(gnick)
+        await database.addUserToGroup(gnick, userName, 'members')
+        await database.removeUserFromGroup(gnick, userName, 'applicants')
+        const url = `/group/admin/${gnick}`
+        res.redirect(303, url)
+    })
+    app.post('/group/rejectapplicant', async (req, res) => {
+        const userName = req.body.userName
+        const gnick = req.body.gnick
+        await database.removeGroupFromUser(gnick, userName)
+        await database.removeUserFromGroup(gnick, userName, 'applicants')
+        const url = `/group/admin/${gnick}`
+        res.redirect(303, url)
+    })
+    app.post('/group/addmod', async (req, res) => {
+        const userName = req.body.userName
+        const gnick = req.body.gnick
+        await database.addUserToGroup(gnick, userName, 'moderators')
+        await database.removeUserFromGroup(gnick, userName, 'members')
+        const url = `/group/admin/${gnick}`
+        res.redirect(303, url)
     })
     
     app.get('/blogdata/img/:name', async (req, res) => {

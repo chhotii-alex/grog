@@ -14,6 +14,7 @@ const database = require('../database')
 // I find the paramters in req.body or req.params or req.query?
 module.exports = app => {
     app.get('/', (req, res) => {
+        console.log("Currently logged in user: " + req.session.userName)
         if (req.session.userName) {
             res.redirect(303, '/landing')
         }
@@ -23,12 +24,10 @@ module.exports = app => {
     })
     
     app.get('/about', (req, res) => {
-        res.type('text/plain')
-        res.send('yo some info here')
+        res.render('about')
     })
     
     app.get('/login', (req, res) => {
-        console.log(req.session)
         res.render('login')
     })
 
@@ -53,6 +52,10 @@ module.exports = app => {
         catch(error) {
             app.errorHandler(error, req, res)
         }
+    })
+    app.post('/logout', (req, res) => {
+        req.session.userName = null
+        res.redirect(303, '/login')
     })
 
     app.get('/newuser', (req, res) => {
@@ -94,8 +97,13 @@ module.exports = app => {
                 return res.redirect(303, '/newuser')
             }
             // create new user in database
-            await database.createUser(user, pwd1, name)
+            await database.createUser(user, pwd1, name, Math.floor(Math.random() * 1000000000000000).toString(36))
             // Then user is returned to login page to log in with their new credentials
+            req.session.flash = {
+                type:'success',
+                intro:'Account Created',
+                message:'Registration successful, please log in.'
+            }
             res.redirect(303, '/login')
         }
         catch (error) {
@@ -114,22 +122,34 @@ module.exports = app => {
     // Use middleware to intercept anything (except an error) from a non-authenticated client
     // and redirect as needed: back to the login page for the UI clients, and 
     // return the appropriate status codes for the API calls.
-    app.use((req, res, next) => {
+    app.use( async (req, res, next) => {
         let apiPathPattern = /^\/?api/
         if (apiPathPattern.test(req.path)) {
+            console.log("Match api")
+            console.log(req.headers)
             // Paths starting with api are API endpoints.
             // To use the API, one must supply X-API-Key in the header. 
             // If it's not present, or is invalid, set status code to indicate, 
             // and terminate processing right here.
-            let apiKey = req.headers["X-API-Key"]
+            let apiKey = req.headers["x-api-key"]
+            console.log(":" + apiKey + ":")
             if (!apiKey) {
                 res.status(401)
                 return res.end()
             }
+            let user = await database.getUserForKey(apiKey)
+            console.log("Found user for key: ")
+            console.log(user)
+            if (!user) {
+                res.status(401)
+                return res.end()
+            }
+            req.user = user
             next()
         }
         else {
             // NOT an API endpoint. Test logged-in state by examining session object.
+            console.log("Currently logged in user: " + req.session.userName)
             if (!req.session.userName) {
                 return res.redirect(303, '/login')
             }

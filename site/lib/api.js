@@ -10,20 +10,27 @@ module.exports = app => {
         return media.sendImage(name, req, res)
     })
     
-    app.get('/api/group/:gnick', (req, res) => {
+    app.get('/api/group/:gnick', async (req, res) => {
         let { gnick } = req.params
-        let posts = database.getPostsForGroup(gnick)
-        let info = { gnick: gnick, 
-            gname: "Name Of Group", 
-            user:req.session.userName, 
-            admin:true,
-            posts:posts }
+        let info = await database.getGroupDataForUser(gnick, req.user)
+        if (!info) {
+            return res.status(404).end()
+        }
         res.format({
             'application/json': () => {
-                res.json(data)
+                res.json(info)
             },
             'application/xml': () => {
-                let xmlData = xml(data, {indent:'  ', declaration:true}) + '\n'
+                transformedThreads = info.threads.map( post => {
+                    return { 'thread' : [
+                        {_attr: {title: post.title, when: post.created_at, author:post.user}},
+                        post.bodytext
+                    ]} })
+                let transform = {'group' : [
+                        {_attr: {name: info.name, nickname:info.nickname}},
+                        {threads: transformedThreads}
+                ]}
+                let xmlData = xml(transform, {indent:'  ', declaration:true}) + '\n'
                 res.send(xmlData)
             },
         })  // END .format

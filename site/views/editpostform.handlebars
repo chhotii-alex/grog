@@ -1,11 +1,30 @@
-<h1> Edit Post</h1>
 
-  <form method="post" action="/post/edit">
-    <input type="hidden" name="pid" value="{{pid}}" >
+
+<h1> Edit New Post</h1>
+
+  <form method="post" action="/newpost">
     <input type="hidden" name="gnick" value="{{gnick}}" >
-    Title:<input type="text" name="title" value="{{title}}"><br/>
-    <textarea name="bodytext" rows="10" cols="50">{{text}}</textarea>
-    <input type="submit" value="Update"  class="btn btn-success">
+    <input type="hidden" name="id" value="{{id}}" >
+    Title:<input type="text" name="title">
+    <input type="checkbox" id="public" name="public">
+    <label for="public">Publically Viewable</label>
+    <br/>
+    <textarea name="bodytext" rows="10" cols="50"></textarea>
+    <input type="submit" value="Publish"  class="btn btn-success">
   </form>
+
+{{#each photos}}
+  <img src="/blogdata/img/{{this}}" />
+{{/each}}
+
+<form enctype="multipart/form-data" method="POST" action="/newpost/photo">
+    <input type="hidden" name="gnick" value="{{gnick}}" >
+    <input type="hidden" name="id" value="{{id}}" >
+    <label for="item">Add Image:</label>
+    <input type="file" required accept="image/png" id="item" name="item" >
+    <button type="submit">Upload</button>
+</form>
+
+
   <a href="/landing">Return to main page</a>
 </div>

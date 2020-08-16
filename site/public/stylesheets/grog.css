@@ -1,1 +1,12 @@
-// Any project-specific CSS above and beyond what Bootstrap provides (if any) goes here.
+/* Any project-specific CSS above and beyond what Bootstrap provides (if any) goes here.  */
+
+div.fixed {
+    position: fixed;
+    width: 50%;
+    bottom: 10px;
+}
+
+span.toright {
+    position: fixed;
+    right: 10px;
+}

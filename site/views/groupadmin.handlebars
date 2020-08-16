@@ -1,10 +1,72 @@
 
-<h3>Admin Page for {{name}}</h3>
+<h3>Admin Page for {{group.name}}</h3>
+{{group.nickname}}
+<h4>Member Lists</h4>
+<h5>Moderators</h5>
+<table>
+    {{#each group.moderators}}
+        <tr>
+            <td>
+                {{realName}}
+            </td>
+        </tr>
+    {{/each}}
+</table>
+{{#if group.members.length}}
+    <h5>Members</h5>
+    <table>
+        {{#each group.members}}
+            <tr>
+                <td>
+                    {{realName}}
+                </td>
+                <td>
+                    <form action="/group/addmod" method="post">
+                        <input type="hidden" name="userName"
+                            value="{{userName}}" >
+                        <input type="hidden" name="gnick"
+                            value="{{../group.nickname}}" >
+                        <input type="submit" value="Make Moderator" />
+                    </form>
+                </td>
+            </tr>
+        {{/each}}
+    </table>
+{{/if}}
+{{#if group.applicants.length}}
+    <h5>Applicants</h5>
+    <table>
+        {{#each group.applicants}}
+            <tr>
+                <td>{{realName}}</td> 
+                <td>
+                    <form action="/group/acceptapplicant" method="post">
+                        <input type="hidden" name="userName"
+                            value="{{userName}}" >
+                        <input type="hidden" name="gnick"
+                            value="{{../group.nickname}}" >
+                        <input type="submit" value="Accept" />
+                    </form>
+                </td>
+                <td>
+                    <form action="/group/rejectapplicant" method="post">
+                        <input type="hidden" name="userName"
+                            value="{{userName}}" >
+                        <input type="hidden" name="gnick"
+                            value="{{../group.nickname}}" >
+                        <input type="submit" value="Reject" />
+                    </form>
+                </td>
+            </tr>
+        {{/each}}
+    </table>
+{{/if}}
+<hr/>
 <form enctype="multipart/form-data" method="POST" action="/group/banner">
-    <input type="hidden" name="gnick" value="{{nickname}}" >
+    <input type="hidden" name="gnick" value="{{group.nickname}}" >
     <label for="banner">New Banner Image:</label>
-    <input type="file" required accept="image/*" id="banner" name="banner" >
+    <input type="file" required accept="image/png" id="banner" name="banner" >
     <button type="submit">Upload</button>
 </form>
 
-{{group}}
+<a href="/group/{{group.nickname}}">Return to Group Page</a>

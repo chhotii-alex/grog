@@ -1,0 +1,17 @@
+<h3> Welcome, {{ user.realName }}!</h3>
+
+<h4>All Groups</h4>
+{{#each groups}}
+    {{#if banner}}
+        <center>
+            <img src="/blogdata/img/{{banner}}" />
+        </center>
+    {{/if}} 
+    <a href="/group/{{gnick}}">
+        <b> {{ gname }} </b>
+    </a>
+    <p/>
+    <hr/>
+{{/each}}
+
+<a href="/" >Return to Main Page</a>
