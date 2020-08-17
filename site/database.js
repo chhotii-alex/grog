@@ -56,7 +56,8 @@ postSchema.add({
     ],
     photos: [String],
     isPublic: Boolean,
-    isPublished: Boolean
+    isPublished: Boolean,
+    thread: String,  // _id of top-level post if this is a comment
 })
 postSchema.set('timestamps', { createdAt: 'created_at', updatedAt: 'updated_at' })
 const Post = mongoose.model("Post", postSchema);
@@ -258,21 +259,30 @@ module.exports.getAllGroups = async () => {
     return results
 }
 
-async function filteredPosts(posts, showAll, gnick) {
-    let results;
-    if (showAll) {
-        results = posts
-    }
-    else {
-        results = posts.filter( post => post.isPublic) 
-    }
-    results = results.filter( post => post.isPublished)
+/* The filteredCommentTree() function recursively populates comments and filters out those that should
+    not be seen. 
+    Input: an array of Post objects (typically all the comments on a Post)
+    Output: processed version of the same array
+    Processing consists of several stages:
+    1) Filtering is done on isPublished
+    2) The comments array on each one is populated (we ask MongoDB to replace the array of ID's
+        with the array of actual objects referenced)
+    3) The recursive step: filteredCommentTree is called on the comments array of each
+    4) Each post is mapped to a transformed object. As this is done serveral things are accomplished:
+        a) the resulting object is not a MongoDB object, and thus handlebars can read its values
+        b) the group nickname is attached
+        c) the ID of the thread is attached to each one
+*/
+async function filteredCommentTree(posts, gnick, thread) {
+    let results = posts.filter( post => post.isPublished)
     let filteredComments = {}
+    let i
     for (i = 0; i < results.length; ++i) {
         if (results[i].comments.length) {
             await results[i].populate("comments")
             await results[i].execPopulate()
-            filteredComments[results[i]._id] = await filteredPosts(results[i].comments, showAll, gnick)
+            filteredComments[results[i]._id] = await filteredCommentTree(
+                results[i].comments, gnick, thread)
         }
     }
     results =  results.map(  post =>  {
@@ -285,20 +295,25 @@ async function filteredPosts(posts, showAll, gnick) {
             user: post.user,
             created_at: post.created_at,
             comments: filteredComments[post._id],
-            gnick: gnick
+            gnick: gnick,
+            thread: thread,
         }
     })
     return results
 }
 
+/* Get the data that is displayed on a group's page, including the group name, banner image filename,
+    and the top-level posts.
+    If the given user is not a member, only include public posts.
+*/
 module.exports.getGroupDataForUser = async (gnick, userID) => {
+    console.log("Got user name:" + userID)
     let group = await (await Group.findOne({nickname:gnick})).populate("threads")
     if (!group) {
         return null
     }
+    console.log(group)
     await group.execPopulate()
-    console.log("threads after execPopulate():")
-    console.log(group.threads)
     let membershipLevel = 0
     if (group.moderators.includes(userID)) {
         membershipLevel = 3
@@ -311,7 +326,18 @@ module.exports.getGroupDataForUser = async (gnick, userID) => {
     }
     // Sort the top-level posts in reverse chronological order of creation:
     group.threads.sort((a, b) => b.created_at - a.created_at )
-    threads = await filteredPosts(group.threads, membershipLevel > 1, group.nickname)
+    let threads = group.threads.filter( thread => (thread.isPublished && (thread.isPublic || membershipLevel > 1)))
+    threads = threads.map( thread => {
+        return {
+            _id: thread._id,
+            title: thread.title,
+            bodytext: thread.bodytext, 
+            photos: thread.photos,
+            isPublic: thread.isPublic,
+            user: thread.user,
+            created_at:thread.created_at
+        }
+    })
     result = {
         name:group.name,
         nickname:group.nickname,
@@ -375,25 +401,52 @@ module.exports.setGroupBanner = async (gnick, basename, ext) => {
 
 exports.addNascentPost = async (gnick) => {
     let group = await Group.findOne({nickname:gnick})
-    let newPost = new Post({isPublished:false})
+    let newPost = new Post({
+        isPublished:false,
+    })
     await newPost.save()
+//    newPost.thread = newPost._id   // A top-level post is its own thread
+//    newPost.save()
     group.threads.push(newPost._id)
     group.save()
     return newPost._id
 }
 
 exports.addPhotoToPost = async (gnick, id, filename) => {
-    console.log("Doing addPhotoToPost")
     let post = await Post.findById(id)
     post.photos.push(filename)
     post.save()
 }
 
+/* Fetches a Post from the database and maps to a view object, but does NOT expand the comments. */
 exports.getPostByGroupAndId = async (gnick, id) => {
-    let showAll = true // TODO: set this according to status of user
+    let post = await Post.findById(id)
+    return {
+        _id: post._id,
+        title: post.title,
+        bodytext: post.bodytext,
+        photos: post.photos,
+        isPublic: post.isPublic,
+        user: post.user,
+        created_at: post.created_at
+    }
+}
+
+/*
+    Queries for the top-level post in a thread by ID, and all its children (comments and comments
+        on comments etc.) (if any).
+    We pass in gnick (the nickname of the group) to be attached to each item in the tree.
+    We also pass in the id of the top-level one we're looking for as the thread identifier
+        for every item in the tree. If the user choses to make a comment on a post, the thread
+        id will be used to navigate to the thread view afterwards.
+*/
+exports.getPostAndCommentsTree = async (gnick, id) => {
     let post = await Post.findById(id).populate("comments")
+    if (!post) {
+        return null
+    }
     await post.execPopulate()
-    let commentsToShow = await filteredPosts(post.comments, true, gnick)
+    let commentsToShow = await filteredCommentTree(post.comments, gnick, id)
     return {
         _id: post._id,
         title: post.title,
@@ -431,15 +484,17 @@ exports.publishPost = async (gnick, id, title, bodytext, isPublic, user) => {
     post.isPublished = true
     post.user = user
     await post.save();
+    return post
 }
 
-exports.addNascentComment = async (parentPostId) => {
+exports.addNascentComment = async (parentPostId, thread) => {
     let post = await Post.findById(parentPostId)
     if (!post) {
         throw 'post ${id} not found'
     }
     let comment = new Post({
         isPublished: false,
+        thread: thread,
     })
     await comment.save()
     post.comments.push(comment._id)

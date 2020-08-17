@@ -63,10 +63,15 @@ module.exports = app => {
     })
     
     app.get('/group/:gnick', async (req, res) => {
+        console.log("Doing group main page handler")
         let { gnick } = req.params
+        console.log(gnick)
+        console.log(req.session.userName)
         try {
             let user = await database.getUser(req.session.userName)
+            console.log(user)
             let group = await database.getGroupDataForUser(gnick, user._id)
+            console.log(group)
             if (!group) {
                 return res.status(404).render('404')
             }
@@ -87,6 +92,7 @@ module.exports = app => {
                 applied:applied,
                 layout:'group'
             }
+            console.log("Just before render")
             res.render('groupmain', info)
         }
         catch (error) {
@@ -120,8 +126,6 @@ module.exports = app => {
     app.post('/group/acceptapplicant', async (req, res) => {
         const userName = req.body.userName
         const gnick = req.body.gnick
-        console.log(userName)
-        console.log(gnick)
         await database.addUserToGroup(gnick, userName, 'members')
         await database.removeUserFromGroup(gnick, userName, 'applicants')
         const url = `/group/admin/${gnick}`

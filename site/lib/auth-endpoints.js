@@ -124,21 +124,16 @@ module.exports = app => {
     app.use( async (req, res, next) => {
         let apiPathPattern = /^\/?api/
         if (apiPathPattern.test(req.path)) {
-            console.log("Match api")
-            console.log(req.headers)
             // Paths starting with api are API endpoints.
             // To use the API, one must supply X-API-Key in the header. 
             // If it's not present, or is invalid, set status code to indicate, 
             // and terminate processing right here.
             let apiKey = req.headers["x-api-key"]
-            console.log(":" + apiKey + ":")
             if (!apiKey) {
                 res.status(401)
                 return res.end()
             }
             let user = await database.getUserForKey(apiKey)
-            console.log("Found user for key: ")
-            console.log(user)
             if (!user) {
                 res.status(401)
                 return res.end()
@@ -148,7 +143,6 @@ module.exports = app => {
         }
         else {
             // NOT an API endpoint. Test logged-in state by examining session object.
-            console.log("Currently logged in user: " + req.session.userName)
             if (!req.session.userName) {
                 return res.redirect(303, '/login')
             }

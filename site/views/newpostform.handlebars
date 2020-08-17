@@ -9,7 +9,7 @@
 
     Title:<input type="text" name="title" value="{{title}}">
     <input type="checkbox" id="public" name="public" >
-    <label for="public">Publically Viewable</label>
+    <label for="public">Publicly Viewable</label>
     <br/>
     <textarea name="bodytext" rows="10" cols="50">{{bodytext}}</textarea>
     <input type="submit" value="Publish"  class="btn btn-success" formaction="/newpost" >
@@ -22,6 +22,7 @@
 
     <input type="hidden" name="gnick" value="{{gnick}}" >
     <input type="hidden" name="id" value="{{id}}" >
+    <input type="hidden" name="parent" value="{{parent}}" >
 </form>
 
 

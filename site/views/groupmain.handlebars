@@ -33,7 +33,9 @@
       <img src="/blogdata/img/{{this}}" />
     {{/each}}
     <br/>
-    <a href="/thread/{{../group.nickname}}/{{_id}}">Comments...</a>
+    {{#if ../member}}
+        <a href="/thread/{{../group.nickname}}/{{_id}}">Comments...</a>
+    {{/if}}
     <hr/>
 {{/each}}
 

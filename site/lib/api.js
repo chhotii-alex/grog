@@ -18,7 +18,7 @@ module.exports = app => {
     
     app.get('/api/group/:gnick', async (req, res) => {
         let { gnick } = req.params
-        let info = await database.getGroupDataForUser(gnick, req.user)
+        let info = await database.getGroupDataForUser(gnick, req.user._id)
         if (!info) {
             return res.status(404).end()
         }
@@ -67,11 +67,12 @@ module.exports = app => {
         return results
     }
 
+    /* The ID of a post is provided in the path.
+        Return the data for that post, and its comments, and comments' comments etc.  
+    */
     app.get('/api/post/:postid', async (req, res) => {
         let { postid } = req.params 
-        let post = await database.getPostByGroupAndId(null, postid)
-        console.log("From db:")
-        console.log(post)
+        let post = await database.getPostAndCommentsTree(null, postid)
         if (!post) {
             return res.status(404).end()
         }

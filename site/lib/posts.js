@@ -18,7 +18,7 @@ Comments are implemented as Post documents embedded in another Post's comments c
 /***********   UI functions related to blog entries  *****************/
 module.exports = app => {
     app.get('/newpost', async (req, res) => {
-        let { gnick, id, parent } = req.query;
+        let { gnick, id, parent, thread } = req.query;
         if (!gnick) {
             res.status(400)
             return res.render('error', { msg: "where to put this post not specified"})
@@ -30,8 +30,7 @@ module.exports = app => {
         else {
             post = null
             if (parent) {
-                console.log("Doing addNascentCommnet...")
-                id = await database.addNascentComment(parent)
+                id = await database.addNascentComment(parent, thread)
             }
             else {
                 id = await database.addNascentPost(gnick)
@@ -39,7 +38,7 @@ module.exports = app => {
             photos = []
         }
         formdata = { layout:'group', 
-            gnick:gnick, parent:parent, id:id, photos:photos,
+            gnick:gnick, id:id, photos:photos,
         }
         if (post) {
             formdata.title = post.title
@@ -49,7 +48,6 @@ module.exports = app => {
     })
 
     app.post('/newpost/photo', async (req, res) => {
-        console.log("Doing /newpost/photo")
         const form = new multiparty.Form()
         form.parse(req, async (err, fields, files) => {
             if (err) {
@@ -90,6 +88,7 @@ module.exports = app => {
     app.post('/newpost', async (req, res) => {
         const form = new multiparty.Form()
         form.parse(req, async (err, fields, files) => {
+            console.log("In parse callback")
             if (err) {
                 console.log("error parsing form")
                 console.log(err)
@@ -103,25 +102,28 @@ module.exports = app => {
             // Dealing with a checkbox is weird
             let public = ("public" in fields) ? true : false
             try {
-                await database.publishPost(gnick, id, title, bodytext, public, user.realName)
+                post = await database.publishPost(gnick, id, title, bodytext, public, user.realName)
             }
             catch (err) {
                 return app.errorHandler(err, req, res)
             }
-            return res.redirect(303, `/group/${gnick}`)
+            if (post.thread) {
+                return res.redirect(303, `/thread/${gnick}/${post.thread}`)
+            }
+            else {
+                return res.redirect(303, `/group/${gnick}`)
+            }
         })    
     })
 
     app.get('/thread/:gnick/:pid', async (req, res) => {
         let { gnick, pid } = req.params
         let group = await database.getGroup(gnick)
-        let post = await database.getPostByGroupAndId(gnick, pid)
+        let post = await database.getPostAndCommentsTree(gnick, pid)
         post.layout = 'group'
         post.group = {banner: group.banner,
                     gnick: group.nickname,
                     gname: group.name}
-        console.log("Showing detail for: ")
-        console.log(post)
         return res.render('postdetail', post)
     })
 
